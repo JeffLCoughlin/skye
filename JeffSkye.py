@@ -1,44 +1,14 @@
 # -*- coding: utf-8 -*-
 
-# # Make input files:
-# awk '{if(NR>2 && $15>90)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/OPS/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/OPS/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > OPS-TTimes-Skygroup-Per-P90.txt
-# awk '{if(NR>2 && $15>90)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/INV/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/INV/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > INV-TTimes-Skygroup-Per-P90.txt
-# awk '{if(NR>2 && $15>90)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/SS1/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/SS1/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > SS1-TTimes-Skygroup-Per-P90.txt
-#
-# awk '{if(NR>2)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/OPS/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/OPS/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > OPS-TTimes-Skygroup-Per.txt
-# awk '{if(NR>2)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/INV/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/INV/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > INV-TTimes-Skygroup-Per.txt
-# awk '{if(NR>2)  print($1,$15,$187)}' /home/jeff/KeplerJob/DR25/SS1/DATA/TCEs-Full.txt | join - /home/jeff/KeplerJob/DR25/SS1/DATA/TransitTimes.txt | awk 'BEGIN{print("tce  ttime  skygroup  period")} {print($1,$4,$3,$2)}' | sort -k 1n > SS1-TTimes-Skygroup-Per.txt
-#
-# awk 'BEGIN{print("tce  period  epoch  skygroup")} {if(NR>2) print($1,$15,$18,$187)}' /home/jeff/KeplerJob/DR25/OPS/DATA/TCEs-Full.txt | sort -k 1n > OPS-Per-Epoch-Skygroup.txt
-# awk 'BEGIN{print("tce  period  epoch  skygroup")} {if(NR>2) print($1,$15,$18,$187)}' /home/jeff/KeplerJob/DR25/INV/DATA/TCEs-Full.txt | sort -k 1n > INV-Per-Epoch-Skygroup.txt
-# awk 'BEGIN{print("tce  period  epoch  skygroup")} {if(NR>2) print($1,$15,$18,$187)}' /home/jeff/KeplerJob/DR25/SS1/DATA/TCEs-Full.txt | sort -k 1n > SS1-Per-Epoch-Skygroup.txt
-# awk 'BEGIN{print("tce  period  epoch  skygroup")} {if(NR>2) print($1,$15,$18,$187)}' /home/jeff/KeplerJob/DR25/INJ/DATA/TCEs-Full.txt | sort -k 1n > INJ-Per-Epoch-Skygroup.txt
-#
-# Run code:
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcSkye(1.0,4.5,'OPS-TTimes-Skygroup-Per-P90.txt','skye-ops.txt','OPS-skye-plots.pdf')"
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcSkye(1.0,4.5,'INV-TTimes-Skygroup-Per-P90.txt','skye-inv.txt','INV-skye-plots.pdf')"
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcSkye(1.0,4.5,'SS1-TTimes-Skygroup-Per-P90.txt','skye-ss1.txt','SS1-skye-plots.pdf')"
-# #
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcBadTCETransits(1.0,'OPS-Per-Epoch-Skygroup.txt','skye-ops.txt','Skyline-Metric-OPS-jeff.txt')"
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcBadTCETransits(1.0,'INV-Per-Epoch-Skygroup.txt','skye-inv.txt','Skyline-Metric-INV-jeff.txt')"
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcBadTCETransits(1.0,'SS1-Per-Epoch-Skygroup.txt','skye-ss1.txt','Skyline-Metric-SS1-jeff.txt')"
-# python -c "execfile('/home/jeff/KeplerJob/DR25/Code/JeffSkye.py'); calcBadTCETransits(1.0,'INJ-Per-Epoch-Skygroup.txt','skye-ops.txt','Skyline-Metric-INJ-jeff.txt')"
-
-
 from subprocess import check_output, CalledProcessError
-import signal
 import numpy as np
 import os
 import scipy
 import math
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from scipy import special
 import sys
 import matplotlib.colors as colors
-from astropy.stats import biweight_midvariance
-from statsmodels.robust.scale import huber
-import peakutils
 
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -52,6 +22,58 @@ def DoubleMAD(x):
    posmad = np.median(absdev[x>=m])
    midmad = np.median(absdev)
    return 1.4826*midmad, 1.4826*posmad, 1.4826*negmad  # Return corrected value to equate to stdev
+
+
+# Calculate which transits of which TCEs correspond to bad cadences on particular skygroups - USES starting value instead of midpoint!
+def calcBadTCETransitsFloor(binwidth,filenamein,skyefilename,outfilename):
+    """Compute times of bad transits using Skye results
+
+    Inputs:
+    -------------
+    binwidth
+        The bin width, in days, for Skye
+
+    filenamein
+        The name of the file containing the tces, periods, epochs, and skygroups
+
+    skyefilename
+        The output file from calcSkye
+
+
+    Returns:
+    -------------
+    None
+
+    Output:
+    ----------
+    File containing TCE IDs and transit times of bad transits due to Skye
+    """
+
+    maxt = 1600.0  # Maximum BKJD of the data
+
+    # Read in the TCE data (name, period, epoch, and skygroup)
+    data = np.genfromtxt(filenamein, names=True, dtype=None)
+
+    # Read in the output file from calcSkye with the bad times and skygroups pairs
+    skyedat = np.genfromtxt(skyefilename, dtype=None)
+
+    # Open the output file for writing
+    outfile = open(outfilename, 'w')
+
+    # Find bad transit times
+    for i in skyedat:   # Loop through each bad transit time / skygroup pair identified by Skye
+        for j in data:  # Loop through each TCE
+            if(i[1] == j['skygroup']):  # If the TCE is on the skygroup (saves a lot of comp time to check first here)
+                t = j['epoch']  # Start computing the time of transit starting from the given epoch
+                while(t < maxt):    # Loop through all possibe transit times given the TCE's ephemeris and maximum time of the data set
+                    if(t > i[0] and t < i[0]+binwidth):  # If the TCE's transit time is within half a bindwidth of the identified bad cadence
+                        outfile.write("%12s %14.10f 1\n" % (j['tce'],t))    # Write the bad TCE name, transit time, and the number 1 to the output file, to be read by robovetter
+                    t += j['period']    # Check the TCE's next transit time
+
+    # Close the output file
+    outfile.close()
+
+
 
 
 # Calculate which transits of which TCEs correspond to bad cadences on particular skygroups
@@ -104,9 +126,7 @@ def calcBadTCETransits(binwidth,filenamein,skyefilename,outfilename):
     outfile.close()
 
 
-
-
-def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
+def calcSusanSkye(binwidth,sigma,filenamein,filenameout,threshnameout,plotname,opt=None):
     """Compute times of transit clusters for each skygroup
 
     Inputs:
@@ -123,12 +143,163 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
 
     Output:
     ----------
-    File containing times and skygroups, upon which any transits should be considered 'bad'
-    Plot showing histogram distribution and cutoff value
+    filenameout
+        File containing times and skygroups, upon which any transits should be considered 'bad'
+    threshnameout
+        File continaing the thresholds for each skygroup
+    plotname
+        Plot showing histogram distribution and cutoff value
     """
+
+
+# 1) Count the number of transits in the skygroup, and the number of bins
+#
+# 2) Divide, that's the rate
+#
+# 3) Multitple rate by S, that's the cutoff
+#
+# 4) Cut out outliers, and count new number of transits and new number of bins  (eliminate the bins that were cut out)
+#
+# 5) Multiply rate by S, get new cutoff
+#
+# 6) Repeat 4 and 5 for X times until sure it's converged.
+
 
     pdf_pages = PdfPages(plotname)
     outfile = open(filenameout, 'w')
+    outfile2 = open(threshnameout, 'w')
+
+    # Load from RoboVetter-Input-INJ-PlanetOn-ForErrors.txt
+    data = np.genfromtxt(filenamein, names=True, dtype=None)
+
+    ttimes = data['ttime'][(data['period']>90)]     # Select TCEs that only have periods great than 90 days
+
+    mint = 131.5
+    maxt = 1591.0
+
+    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+    histvals = hist[0]
+    bins = hist[1]
+    bincenters = 0.5*(bins[1:]+bins[:-1])   # Compute the center time of each bin
+
+    bincenterstmp = bincenters
+    histvalstmp = histvals
+    nbins = len(bincenterstmp)
+    ntrans = np.sum(histvalstmp)
+    rate = 1.0*ntrans/nbins
+    cutoff = rate + sigma*np.sqrt(rate)
+    print('All',ntrans,nbins,rate,cutoff)
+
+    for i in range(0,5):
+        bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
+        histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+        nbins = len(bincenterstmp)
+        ntrans = np.sum(histvalstmp)
+        rate = 1.0*ntrans/nbins
+        cutoff = rate + sigma*np.sqrt(rate)
+        print('All',ntrans,nbins,rate,cutoff)
+
+    badtimes = bincenters[histvals>cutoff]
+
+    outfile2.write("%3s %5.3f\n" % ('All',cutoff))
+
+    # Make plot for all skygroups
+    fig = plt.figure()
+    fig.set_size_inches(11,8.5)
+    plt.title("All Skygroups\n")
+    plt.xlabel("Transit Time")
+    plt.ylabel("Number")
+    plt.axhline(y=cutoff, c="blue")
+    plt.step(bincenters,histvals, color='k', rasterized=True)
+    pdf_pages.savefig(fig, dpi=400)
+
+
+    # for sg in range(1,85):
+    for sg in range(5,6):
+        ttimes = data[data['skygroup']==sg]['ttime']
+        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+        for i in hist:
+            print(i)
+        exit(0)
+
+        ttimes = data[np.logical_and(data['skygroup']==sg,data['period']>90)]['ttime']
+
+        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+        histvals = hist[0]
+        bins = hist[1]
+        bincenters = 0.5*(bins[1:]+bins[:-1])
+
+        bincenterstmp = bincenters
+        histvalstmp = histvals
+        nbins = len(bincenterstmp)
+        ntrans = np.sum(histvalstmp)
+        rate = 1.0*ntrans/nbins
+        cutoff = rate + sigma*np.sqrt(rate)
+        print(sg,ntrans,nbins,rate,cutoff)
+
+        for i in range(0,5):
+            bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
+            histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+            nbins = len(bincenterstmp)
+            ntrans = np.sum(histvalstmp)
+            rate = 1.0*ntrans/nbins
+            cutoff = rate + sigma*np.sqrt(rate)
+            print(sg,ntrans,nbins,rate,cutoff)
+            badtimes = bincenters[histvals>cutoff]
+
+        outfile2.write("%3i %5.3f\n" % (sg,cutoff))
+
+        for time in badtimes:
+            outfile.write("%6.2f %2i\n" % (time,sg))
+
+        # print(" ")
+
+        fig = plt.figure()
+        fig.set_size_inches(11,8.5)
+        plt.title("Skygroup %i\n" % (sg))
+        plt.xlabel("Transit Time")
+        plt.ylabel("Number")
+        plt.axhline(y=cutoff, c="blue")
+        plt.step(bincenters,histvals, color='k', rasterized=True)
+        plt.ylim(ymin=0)
+        pdf_pages.savefig(fig, dpi=400)
+
+
+    outfile.close()
+    outfile2.close()
+    pdf_pages.close()
+
+
+
+def calcSkye(binwidth,sigma,filenamein,filenameout,threshnameout,plotname,opt=None):
+    """Compute times of transit clusters for each skygroup
+
+    Inputs:
+    -------------
+    binwidth
+        The bin width, in days, for Skye
+
+    filename
+        The name of the file containing the times of transit, skygroup, and period
+
+    Returns:
+    -------------
+    None
+
+    Output:
+    ----------
+    filenameout
+        File containing times and skygroups, upon which any transits should be considered 'bad'
+    threshnameout
+        File continaing the thresholds for each skygroup
+    plotname
+        Plot showing histogram distribution and cutoff value
+    """
+
+
+    pdf_pages = PdfPages(plotname)
+    outfile = open(filenameout, 'w')
+    outfile2 = open(threshnameout, 'w')
 
     # Load from RoboVetter-Input-INJ-PlanetOn-ForErrors.txt
     data = np.genfromtxt(filenamein, names=True, dtype=None)
@@ -177,23 +348,28 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
 
 
     histvalstmp = histvals
-    histmean = np.mean(histvalstmp)
-    stdev = np.std(histvals)
+    # histmean = np.mean(histvalstmp)
+    histmean = np.mean(histvalstmp[(histvalstmp>0)])
+    # stdev = np.std(histvals)
+    stdev = np.std(histvalstmp[(histvalstmp>0)])
     cutoff = histmean + sigma*stdev
     # print(histmean,stdev,cutoff)
     for i in range(0,5):
-        histvalstmp = histvalstmp[([histvalstmp<cutoff])]
-        histmean = np.mean(histvalstmp)
-        stdev = np.std(histvalstmp)
+        histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+        # histmean = np.mean(histvalstmp)
+        histmean = np.mean(histvalstmp[(histvalstmp>0)])
+        # stdev = np.std(histvalstmp)
+        stdev = np.std(histvalstmp[(histvalstmp>0)])
         cutoff = histmean + sigma*stdev
         # print(histmean,stdev,cutoff)
     badtimes = bincenters[histvals>cutoff]
 
+    outfile2.write("%3s %5.3f\n" % ('All',cutoff))
     # for time in badtimes:
     #     for sg in range(1,85):
     #         outfile.write("%6.2f %2i\n" % (time,sg))
 
-    print(" ")
+    # print(" ")
 
     # Make plot for all skygroups
     fig = plt.figure()
@@ -208,8 +384,8 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
     # pdf_pages.close()
     # exit(0)
 
-    #for sg in range(1,85):
     for sg in range(1,85):
+    # for sg in range(40,50):
         ttimes = data[np.logical_and(data['skygroup']==sg,data['period']>90)]['ttime']
 
         hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
@@ -217,7 +393,7 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
         bins = hist[1]
         bincenters = 0.5*(bins[1:]+bins[:-1])
 
-        print("Skygroup ",sg)
+        # print("Skygroup ",sg)
         # print(np.sum(histvals))
         # histmed = np.median(histvals)
         # midmad, posmad, negmad = DoubleMAD(histvals)
@@ -225,18 +401,24 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
         # print(histmed,midmad,posmad,cutoff)
 
         histvalstmp = histvals
-        histmean = np.mean(histvalstmp)
-        stdev = np.std(histvals)
+        # histmean = np.mean(histvalstmp)
+        histmean = np.mean(histvalstmp[(histvalstmp>0)])
+        # stdev = np.std(histvalstmp)
+        stdev = np.std(histvalstmp[(histvalstmp>0)])
         cutoff = histmean + sigma*stdev
         # print(histmean,stdev,cutoff)
         for i in range(0,5):
-            histvalstmp = histvalstmp[([histvalstmp<cutoff])]
-            histmean = np.mean(histvalstmp)
-            stdev = np.std(histvalstmp)
+            histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+            # histmean = np.mean(histvalstmp)
+            histmean = np.mean(histvalstmp[(histvalstmp>0)])
+            # stdev = np.std(histvalstmp)
+            stdev = np.std(histvalstmp[(histvalstmp>0)])
             cutoff = histmean + sigma*stdev
             # print(histmean,stdev,cutoff)
 
         badtimes = bincenters[histvals>cutoff]
+
+        outfile2.write("%3i %5.3f\n" % (sg,cutoff))
 
         # indexes = find_peaks_cwt(histvals, np.arange(1,2), min_snr=4)
         # print(bincenters[indexes])
@@ -252,7 +434,7 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
         for time in badtimes:
             outfile.write("%6.2f %2i\n" % (time,sg))
 
-        print(" ")
+        # print(" ")
 
         fig = plt.figure()
         fig.set_size_inches(11,8.5)
@@ -261,8 +443,10 @@ def calcSkye(binwidth,sigma,filenamein,filenameout,plotname,opt=None):
         plt.ylabel("Number")
         plt.axhline(y=cutoff, c="blue")
         plt.step(bincenters,histvals, color='k', rasterized=True)
+        plt.ylim(ymin=0)
         pdf_pages.savefig(fig, dpi=400)
 
 
     outfile.close()
+    outfile2.close()
     pdf_pages.close()
