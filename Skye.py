@@ -17,18 +17,18 @@ sys.setdefaultencoding('utf8')
 # Main
 def main():
     # Call susan skye for OPS, INV, and SS1
-    #calcSusanSkye(1.0,3.0,45.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','OPS-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
-    #calcSusanSkye(1.0,3.0,45.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','INV-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
-    calcSusanSkye(1.0,3.0,45.0,'SS1-TTimes-Skygroup-Per-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS1-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
-    calcSusanSkye(1.0,3.0,45.0,'SS2-TTimes-Skygroup-Per-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS2-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
-    calcSusanSkye(1.0,3.0,45.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS3-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSkye(1.0,3.0,45.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','OPS-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSkye(1.0,3.0,45.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','INV-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSkye(1.0,3.0,45.0,'SS1-TTimes-Skygroup-Per-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS1-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSkye(1.0,3.0,45.0,'SS2-TTimes-Skygroup-Per-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS2-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSkye(1.0,3.0,45.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS3-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
 
 
     # Call calc bad tps transits for OPS, INV, SS1, and INJ
-    #calcBadTPSTCETransits(1.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-OPS-susan.txt')
-    #calcBadTPSTCETransits(1.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INV-susan.txt')
+    calcBadTPSTCETransits(1.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-OPS-susan.txt')
+    calcBadTPSTCETransits(1.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INV-susan.txt')
     calcBadTPSTCETransits(1.0,'SS1-TTimes-Skygroup-Per-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS1-susan.txt')
-    #calcBadTPSTCETransits(1.0,'INJ-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INJ-susan.txt')
+    calcBadTPSTCETransits(1.0,'INJ-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INJ-susan.txt')
     calcBadTPSTCETransits(1.0,'SS2-TTimes-Skygroup-Per-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS2-susan.txt')
     calcBadTPSTCETransits(1.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS3-susan.txt')
 
@@ -148,7 +148,7 @@ def calcBadTCETransits(binwidth,filenamein,skyefilename,outfilename):
     outfile.close()
 
 
-def calcSusanSkye(binwidth,sigma,periodcut,filenamein,filenameout,threshnameout,plotname,opt=None):
+def calcSkye(binwidth,sigma,periodcut,filenamein,filenameout,threshnameout,plotname,opt=None):
     """Compute times of transit clusters for each skygroup
 
     Inputs:
@@ -307,117 +307,6 @@ def calcSusanSkye(binwidth,sigma,periodcut,filenamein,filenameout,threshnameout,
     pdf_pages.close()
 
 
-
-def calcJeffSkye(binwidth,sigma,filenamein,filenameout,threshnameout,plotname,opt=None):
-    """Compute times of transit clusters for each skygroup
-
-    Inputs:
-    -------------
-    binwidth
-        The bin width, in days, for Skye
-
-    filename
-        The name of the file containing the times of transit, skygroup, and period
-
-    Returns:
-    -------------
-    None
-
-    Output:
-    ----------
-    filenameout
-        File containing times and skygroups, upon which any transits should be considered 'bad'
-    threshnameout
-        File continaing the thresholds for each skygroup
-    plotname
-        Plot showing histogram distribution and cutoff value
-    """
-
-
-    pdf_pages = PdfPages(plotname)
-    outfile = open(filenameout, 'w')
-    outfile2 = open(threshnameout, 'w')
-
-    # Load from RoboVetter-Input-INJ-PlanetOn-ForErrors.txt
-    data = np.genfromtxt(filenamein, names=True, dtype=None)
-
-    ttimes = data['ttime'][(data['period']>periodcut)]     # Select TCEs that only have periods great than periodcut days
-
-    mint = 131.5
-    maxt = 1591.0
-
-    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
-    histvals = hist[0]
-    bins = hist[1]
-    bincenters = 0.5*(bins[1:]+bins[:-1])   # Compute the center time of each bin
-
-    histvalstmp = histvals
-    histmean = np.mean(histvalstmp[(histvalstmp>0)])
-    stdev = np.std(histvalstmp[(histvalstmp>0)])
-    cutoff = histmean + sigma*stdev
-
-    for i in range(0,5):
-        histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
-        histmean = np.mean(histvalstmp[(histvalstmp>0)])
-        stdev = np.std(histvalstmp[(histvalstmp>0)])
-        cutoff = histmean + sigma*stdev
-
-    badtimes = bincenters[histvals>cutoff]
-
-    outfile2.write("%3s %5.3f\n" % ('All',cutoff))
-
-
-    # Make plot for all skygroups
-    fig = plt.figure()
-    fig.set_size_inches(11,8.5)
-    plt.title("All Skygroups\n")
-    plt.xlabel("Transit Time")
-    plt.ylabel("Number")
-    plt.axhline(y=cutoff, c="blue")
-    plt.step(bincenters,histvals, color='k', rasterized=True)
-    pdf_pages.savefig(fig, dpi=400)
-
-
-    # Loop over all 84 skygroups
-    for sg in range(1,85):
-        ttimes = data[np.logical_and(data['skygroup']==sg,data['period']>periodcut)]['ttime']
-
-        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
-        histvals = hist[0]
-        bins = hist[1]
-        bincenters = 0.5*(bins[1:]+bins[:-1])
-
-        histvalstmp = histvals
-        histmean = np.mean(histvalstmp[(histvalstmp>0)])
-        stdev = np.std(histvalstmp[(histvalstmp>0)])
-        cutoff = histmean + sigma*stdev
-
-        for i in range(0,5):
-            histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
-            histmean = np.mean(histvalstmp[(histvalstmp>0)])
-            stdev = np.std(histvalstmp[(histvalstmp>0)])
-            cutoff = histmean + sigma*stdev
-
-        badtimes = bincenters[histvals>cutoff]
-
-        outfile2.write("%3i %5.3f\n" % (sg,cutoff))
-
-        for time in badtimes:
-            outfile.write("%6.2f %2i\n" % (time,sg))
-
-        fig = plt.figure()
-        fig.set_size_inches(11,8.5)
-        plt.title("Skygroup %i\n" % (sg))
-        plt.xlabel("Transit Time")
-        plt.ylabel("Number")
-        plt.axhline(y=cutoff, c="blue")
-        plt.step(bincenters,histvals, color='k', rasterized=True)
-        plt.ylim(ymin=0)
-        pdf_pages.savefig(fig, dpi=400)
-
-    outfile.close()
-    outfile2.close()
-    pdf_pages.close()
 
 
 # Run main by default
