@@ -14,6 +14,26 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 
 
+# Main
+def main():
+    # Call susan skye for OPS, INV, and SS1
+    #calcSusanSkye(1.0,3.0,45.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','OPS-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    #calcSusanSkye(1.0,3.0,45.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','INV-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSusanSkye(1.0,3.0,45.0,'SS1-TTimes-Skygroup-Per-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS1-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSusanSkye(1.0,3.0,45.0,'SS2-TTimes-Skygroup-Per-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS2-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+    calcSusanSkye(1.0,3.0,45.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP-thresh.txt','SS3-skye-plots-susan-3.0sig-1.0day-45days-NoFSP.pdf')
+
+
+    # Call calc bad tps transits for OPS, INV, SS1, and INJ
+    #calcBadTPSTCETransits(1.0,'OPS-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-OPS-susan.txt')
+    #calcBadTPSTCETransits(1.0,'INV-TTimes-Skygroup-Per-NoFSP.txt','skye-inv-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INV-susan.txt')
+    calcBadTPSTCETransits(1.0,'SS1-TTimes-Skygroup-Per-NoFSP.txt','skye-ss1-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS1-susan.txt')
+    #calcBadTPSTCETransits(1.0,'INJ-TTimes-Skygroup-Per-NoFSP.txt','skye-ops-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-INJ-susan.txt')
+    calcBadTPSTCETransits(1.0,'SS2-TTimes-Skygroup-Per-NoFSP.txt','skye-ss2-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS2-susan.txt')
+    calcBadTPSTCETransits(1.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS3-susan.txt')
+
+
+
 # This function calculates and returns the MAD of the input values, the MAD of the values above the median, and the MAD of the values below the median
 def DoubleMAD(x):
    m      = np.median(x)
@@ -22,6 +42,7 @@ def DoubleMAD(x):
    posmad = np.median(absdev[x>=m])
    midmad = np.median(absdev)
    return 1.4826*midmad, 1.4826*posmad, 1.4826*negmad  # Return corrected value to equate to stdev
+
 
 
 # Calculate which transits of which TCEs correspond to bad cadences on particular skygroups using the TPS times
@@ -397,3 +418,8 @@ def calcJeffSkye(binwidth,sigma,filenamein,filenameout,threshnameout,plotname,op
     outfile.close()
     outfile2.close()
     pdf_pages.close()
+
+
+# Run main by default
+if __name__ == "__main__":
+    main()
