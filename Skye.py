@@ -33,15 +33,155 @@ def main():
     calcBadTPSTCETransits(1.0,'SS3-TTimes-Skygroup-Per-NoFSP.txt','skye-ss3-susan-3.0sig-1.0day-45days-NoFSP.txt','Skyline-Metric-SS3-susan.txt')
 
 
+def calcSkye(binwidth,sigma,periodcut,filenamein,filenameout,threshnameout,plotname,opt=None):
+    """Compute times of transit clusters for each skygroup
 
-# This function calculates and returns the MAD of the input values, the MAD of the values above the median, and the MAD of the values below the median
-def DoubleMAD(x):
-   m      = np.median(x)
-   absdev = np.abs(x - m)
-   negmad = np.median(absdev[x<=m])
-   posmad = np.median(absdev[x>=m])
-   midmad = np.median(absdev)
-   return 1.4826*midmad, 1.4826*posmad, 1.4826*negmad  # Return corrected value to equate to stdev
+    Inputs:
+    -------------
+    binwidth
+        The bin width, in days, for Skye
+
+    filenamein
+        The name of the file containing the times of transit, skygroup, and period
+
+    Returns:
+    -------------
+    None
+
+    Output:
+    ----------
+    filenameout
+        File containing times and skygroups, upon which any transits should be considered 'bad'
+    threshnameout
+        File continaing the thresholds for each skygroup
+    plotname
+        Plot showing histogram distribution and cutoff value
+    """
+
+    # General idea
+    #
+    # 1) Count the number of transits in the skygroup, and the number of bins
+    #
+    # 2) Divide, that's the rate
+    #
+    # 3) Multitple rate by S, that's the cutoff
+    #
+    # 4) Cut out outliers, and count new number of transits and new number of bins  (eliminate the bins that were cut out)
+    #
+    # 5) Multiply rate by S, get new cutoff
+    #
+    # 6) Repeat 4 and 5 for X times until sure it's converged.
+
+    mint = 131.5
+    maxt = 1591.0
+
+    pdf_pages = PdfPages(plotname)
+    outfile = open(filenameout, 'w')
+    outfile2 = open(threshnameout, 'w')
+
+    # Load from input file
+    data = np.genfromtxt(filenamein, names=True, dtype=None)
+
+    # Calculate gaptimes first
+    ttimes = data[(data['ses']!=0)]['ttime']  # Select all times from all TCEs with all periods that have non-zero SES values (i.e., are not in gaps)
+    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+    histvals = hist[0]
+    bins = hist[1]
+    bincenters = 0.5*(bins[1:]+bins[:-1])
+    gaptimes = bincenters[histvals==0]  # If the histogram value is zero, then no TCE at any period ever made a transit there, so it's a gap, so record the times of the gaps
+
+    # Now calculate real histogram, taking gaps into account, using P > periodcut
+    ttimes = data[(data['period']>periodcut)]['ttime']     # Select TCEs that only have periods great than periodcut days
+    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+    histvals = hist[0]
+    bins = hist[1]
+    bincenters = 0.5*(bins[1:]+bins[:-1])   # Compute the center time of each bin
+    bincenterstmp = bincenters[~np.in1d(bincenters, gaptimes)]  # Only use non-gapped times for stats
+    histvalstmp = histvals[~np.in1d(bincenters, gaptimes)]  # Only use histogram values corresponding to non-gapped times for stats
+    nbins = len(bincenterstmp)
+    ntrans = np.sum(histvalstmp)
+    rate = 1.0*ntrans/nbins
+    cutoff = rate + sigma*np.sqrt(rate)
+
+    # Iterate on cutting out spikes to converge on cutoff value
+    for i in range(0,5):
+        bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
+        histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+        nbins = len(bincenterstmp)
+        ntrans = np.sum(histvalstmp)
+        rate = 1.0*ntrans/nbins
+        cutoff = rate + sigma*np.sqrt(rate)
+
+    badtimes = bincenters[histvals>cutoff]
+
+    outfile2.write("%3s %5.3f\n" % ('All',cutoff))
+
+    # Make plot for all skygroups
+    fig = plt.figure()
+    fig.set_size_inches(11,8.5)
+    plt.title("All Skygroups\n")
+    plt.xlabel("Transit Time")
+    plt.ylabel("Number")
+    plt.axhline(y=cutoff, c="blue")
+    plt.step(bincenters,histvals, color='k', rasterized=True)
+    pdf_pages.savefig(fig, dpi=400)
+
+    # Now loop over all the 84 skygroups
+    for sg in range(1,85):
+
+        # Calculate gaptimes first
+        ttimes = data[np.logical_and(data['skygroup']==sg,data['ses']!=0)]['ttime']  # Select all times from all TCEs with all periods that have non-zero SES values (i.e., are not in gaps)
+        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
+        histvals = hist[0]
+        bins = hist[1]
+        bincenters = 0.5*(bins[1:]+bins[:-1])
+        gaptimes = bincenters[histvals==0]  # If the histogram value is zero, then no TCE at any period ever made a transit there, so it's a gap, so record the times of the gaps
+
+        # Now calculate real histogram, taking gaps into account, using P > periodcut
+        ttimes = data[np.logical_and(data['skygroup']==sg,data['period']>periodcut)]['ttime']  # Select all transit times from TCEs on the given skygroup and with P > periodcut days
+        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))     # Calculate the histogram values from times mint to maxt with binning size binwidth
+        histvals = hist[0]  # Save the histogram values (number in each bin)
+        bins = hist[1]  # Save the bins (start and end times of each bin)
+        bincenters = 0.5*(bins[1:]+bins[:-1])  # Compute the bin centers (so one bincenter for each histval)
+
+        bincenterstmp = bincenters[~np.in1d(bincenters, gaptimes)]  # Only use non-gapped times for stats
+        histvalstmp = histvals[~np.in1d(bincenters, gaptimes)]  # Only use histogram values corresponding to non-gapped times for stats
+        nbins = len(bincenterstmp)
+        ntrans = np.sum(histvalstmp)
+        rate = 1.0*ntrans/nbins
+        cutoff = rate + sigma*np.sqrt(rate)
+
+        # Iterate on cutting out spikes to converge on cutoff value
+        for i in range(0,5):
+            bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
+            histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
+            nbins = len(bincenterstmp)
+            ntrans = np.sum(histvalstmp)
+            rate = 1.0*ntrans/nbins
+            cutoff = rate + sigma*np.sqrt(rate)
+        
+        badtimes = bincenters[histvals>cutoff]
+
+        outfile2.write("%3i %5.3f\n" % (sg,cutoff))
+
+        for time in badtimes:
+            outfile.write("%6.2f %2i\n" % (time,sg))
+
+        # Make plot
+        fig = plt.figure()
+        fig.set_size_inches(11,8.5)
+        plt.title("Skygroup %i\n" % (sg))
+        plt.xlabel("Transit Time")
+        plt.ylabel("Number")
+        plt.axhline(y=cutoff, c="blue")
+        plt.step(bincenters,histvals, color='k', rasterized=True)
+        plt.ylim(ymin=0)
+        pdf_pages.savefig(fig, dpi=400)
+
+
+    outfile.close()
+    outfile2.close()
+    pdf_pages.close()
 
 
 
@@ -95,217 +235,6 @@ def calcBadTPSTCETransits(binwidth,filenamein,skyefilename,outfilename):
 
     # Close the output file
     outfile.close()
-
-
-
-# Calculate which transits of which TCEs correspond to bad cadences on particular skygroups using the DV times
-def calcBadTCETransits(binwidth,filenamein,skyefilename,outfilename):
-    """Compute times of bad transits using Skye results
-
-    Inputs:
-    -------------
-    binwidth
-        The bin width, in days, for Skye
-
-    filenamein
-        The name of the file containing the tces, periods, epochs, and skygroups
-
-    skyefilename
-        The output file from calcSkye
-
-
-    Returns:
-    -------------
-    None
-
-    Output:
-    ----------
-    File containing TCE IDs and transit times of bad transits due to Skye
-    """
-
-    maxt = 1600.0  # Maximum BKJD of the data
-
-    # Read in the TCE data (name, period, epoch, and skygroup)
-    data = np.genfromtxt(filenamein, names=True, dtype=None)
-
-    # Read in the output file from calcSkye with the bad times and skygroups pairs
-    skyedat = np.genfromtxt(skyefilename, dtype=None)
-
-    # Open the output file for writing
-    outfile = open(outfilename, 'w')
-
-    # Find bad transit times
-    for i in skyedat:   # Loop through each bad transit time / skygroup pair identified by Skye
-        for j in data:  # Loop through each TCE
-            if(i[1] == j['skygroup']):  # If the TCE is on the skygroup (saves a lot of comp time to check first here)
-                t = j['epoch']  # Start computing the time of transit starting from the given epoch
-                while(t < maxt):    # Loop through all possibe transit times given the TCE's ephemeris and maximum time of the data set
-                    if(t > i[0]-binwidth/2 and t < i[0]+binwidth/2):  # If the TCE's transit time is within half a bindwidth of the identified bad cadence
-                        outfile.write("%12s %14.10f 1\n" % (j['tce'],t))    # Write the bad TCE name, transit time, and the number 1 to the output file, to be read by robovetter
-                    t += j['period']    # Check the TCE's next transit time
-
-    # Close the output file
-    outfile.close()
-
-
-def calcSkye(binwidth,sigma,periodcut,filenamein,filenameout,threshnameout,plotname,opt=None):
-    """Compute times of transit clusters for each skygroup
-
-    Inputs:
-    -------------
-    binwidth
-        The bin width, in days, for Skye
-
-    filenamein
-        The name of the file containing the times of transit, skygroup, and period
-
-    Returns:
-    -------------
-    None
-
-    Output:
-    ----------
-    filenameout
-        File containing times and skygroups, upon which any transits should be considered 'bad'
-    threshnameout
-        File continaing the thresholds for each skygroup
-    plotname
-        Plot showing histogram distribution and cutoff value
-    """
-
-    # General idea
-    #
-    # 1) Count the number of transits in the skygroup, and the number of bins
-    #
-    # 2) Divide, that's the rate
-    #
-    # 3) Multitple rate by S, that's the cutoff
-    #
-    # 4) Cut out outliers, and count new number of transits and new number of bins  (eliminate the bins that were cut out)
-    #
-    # 5) Multiply rate by S, get new cutoff
-    #
-    # 6) Repeat 4 and 5 for X times until sure it's converged.
-
-    mint = 131.5
-    maxt = 1591.0
-
-    pdf_pages = PdfPages(plotname)
-    outfile = open(filenameout, 'w')
-    outfile2 = open(threshnameout, 'w')
-
-    # Load from RoboVetter-Input-INJ-PlanetOn-ForErrors.txt
-    data = np.genfromtxt(filenamein, names=True, dtype=None)
-
-    # Calculate gaptimes first
-    ttimes = data[(data['ses']!=0)]['ttime']  # Select all times from all TCEs with all periods that have non-zero SES values (i.e., are not in gaps)
-    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
-    histvals = hist[0]
-    bins = hist[1]
-    bincenters = 0.5*(bins[1:]+bins[:-1])
-    gaptimes = bincenters[histvals==0]  # If the histogram value is zero, then no TCE at any period ever made a transit there, so it's a gap, so record the times of the gaps
-
-    # Now calculate real histogram, taking gaps into account, using P > periodcut
-    ttimes = data[(data['period']>periodcut)]['ttime']     # Select TCEs that only have periods great than periodcut days
-    hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
-    histvals = hist[0]
-    bins = hist[1]
-    bincenters = 0.5*(bins[1:]+bins[:-1])   # Compute the center time of each bin
-    bincenterstmp = bincenters[~np.in1d(bincenters, gaptimes)]  # Only use non-gapped times for stats
-    histvalstmp = histvals[~np.in1d(bincenters, gaptimes)]  # Only use histogram values corresponding to non-gapped times for stats
-    nbins = len(bincenterstmp)
-    ntrans = np.sum(histvalstmp)
-    rate = 1.0*ntrans/nbins
-    cutoff = rate + sigma*np.sqrt(rate)
-    # if(cutoff<1.0):  # Don't let cutoff be less than 1.0
-        # cutoff = 1.0
-
-    # Iterate on cutting out spikes to converge on cutoff value
-    for i in range(0,5):
-        bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
-        histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
-        nbins = len(bincenterstmp)
-        ntrans = np.sum(histvalstmp)
-        rate = 1.0*ntrans/nbins
-        cutoff = rate + sigma*np.sqrt(rate)
-        # if(cutoff<1.0):  # Don't let cutoff be less than 1.0
-            # cutoff = 1.0
-
-    badtimes = bincenters[histvals>cutoff]
-
-    outfile2.write("%3s %5.3f\n" % ('All',cutoff))
-
-    # Make plot for all skygroups
-    fig = plt.figure()
-    fig.set_size_inches(11,8.5)
-    plt.title("All Skygroups\n")
-    plt.xlabel("Transit Time")
-    plt.ylabel("Number")
-    plt.axhline(y=cutoff, c="blue")
-    plt.step(bincenters,histvals, color='k', rasterized=True)
-    pdf_pages.savefig(fig, dpi=400)
-
-    # Now loop over all the 84 skygroups
-    for sg in range(1,85):
-
-        # Calculate gaptimes first
-        ttimes = data[np.logical_and(data['skygroup']==sg,data['ses']!=0)]['ttime']  # Select all times from all TCEs with all periods that have non-zero SES values (i.e., are not in gaps)
-        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))
-        histvals = hist[0]
-        bins = hist[1]
-        bincenters = 0.5*(bins[1:]+bins[:-1])
-        gaptimes = bincenters[histvals==0]  # If the histogram value is zero, then no TCE at any period ever made a transit there, so it's a gap, so record the times of the gaps
-
-        # Now calculate real histogram, taking gaps into account, using P > periodcut
-        ttimes = data[np.logical_and(data['skygroup']==sg,data['period']>periodcut)]['ttime']  # Select all transit times from TCEs on the given skygroup and with P > periodcut days
-        hist = np.histogram(ttimes,bins=np.arange(mint, maxt + binwidth, binwidth))     # Calculate the histogram values from times mint to maxt with binning size binwidth
-        histvals = hist[0]  # Save the histogram values (number in each bin)
-        bins = hist[1]  # Save the bins (start and end times of each bin)
-        bincenters = 0.5*(bins[1:]+bins[:-1])  # Compute the bin centers (so one bincenter for each histval)
-
-        bincenterstmp = bincenters[~np.in1d(bincenters, gaptimes)]  # Only use non-gapped times for stats
-        histvalstmp = histvals[~np.in1d(bincenters, gaptimes)]  # Only use histogram values corresponding to non-gapped times for stats
-        nbins = len(bincenterstmp)
-        ntrans = np.sum(histvalstmp)
-        rate = 1.0*ntrans/nbins
-        cutoff = rate + sigma*np.sqrt(rate)
-        # if(cutoff<1.0):  # Don't let cutoff be less than 1.0
-            # cutoff = 1.0
-
-        # Iterate on cutting out spikes to converge on cutoff value
-        for i in range(0,5):
-            bincenterstmp = bincenterstmp[([histvalstmp<=cutoff])]
-            histvalstmp = histvalstmp[([histvalstmp<=cutoff])]
-            nbins = len(bincenterstmp)
-            ntrans = np.sum(histvalstmp)
-            rate = 1.0*ntrans/nbins
-            cutoff = rate + sigma*np.sqrt(rate)
-            # if(cutoff<1.0):  # Don't let cutoff be less than 1.0
-                # cutoff = 1.0
-            # print(sg,ntrans,nbins,rate,cutoff)
-            badtimes = bincenters[histvals>cutoff]
-
-        outfile2.write("%3i %5.3f\n" % (sg,cutoff))
-
-        for time in badtimes:
-            outfile.write("%6.2f %2i\n" % (time,sg))
-
-        # Make plot
-        fig = plt.figure()
-        fig.set_size_inches(11,8.5)
-        plt.title("Skygroup %i\n" % (sg))
-        plt.xlabel("Transit Time")
-        plt.ylabel("Number")
-        plt.axhline(y=cutoff, c="blue")
-        plt.step(bincenters,histvals, color='k', rasterized=True)
-        plt.ylim(ymin=0)
-        pdf_pages.savefig(fig, dpi=400)
-
-
-    outfile.close()
-    outfile2.close()
-    pdf_pages.close()
-
 
 
 
